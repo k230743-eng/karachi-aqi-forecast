@@ -1,0 +1,39 @@
+# Environment variables and secrets
+.env
+
+# Python virtual environment
+.venv/
+venv/
+
+# Python-generated files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE files
+.vscode/
+.idea/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Local datasets and model files
+data/
+models/
+*.csv
+*.pkl
+*.joblib
+*.keras
+*.h5
+
+# Logs
+*.log
