@@ -1,39 +1,48 @@
 # Environment variables and secrets
 .env
 
-# Python virtual environment
+# Virtual environment
 .venv/
 venv/
 
-# Python-generated files
+# Python cache files
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Jupyter
-.ipynb_checkpoints/
-
-# Testing
+# Pytest
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local data files
+data/raw/*
+data/processed/*
+
+# Keep the folders themselves
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Trained models
+models/*
+!models/.gitkeep
+
+# Generated outputs
+outputs/graphs/*
+outputs/metrics/*
+!outputs/graphs/.gitkeep
+!outputs/metrics/.gitkeep
+
+# Logs
+*.log
 
 # IDE files
 .vscode/
 .idea/
 
-# Operating-system files
+# Operating system files
 .DS_Store
 Thumbs.db
-
-# Local datasets and model files
-data/
-models/
-*.csv
-*.pkl
-*.joblib
-*.keras
-*.h5
-
-# Logs
-*.log
