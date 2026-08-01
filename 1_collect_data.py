@@ -1,9 +1,13 @@
+# Importing Libraries
+
 from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
 import requests
 
+#Karachi Latitude and Longitude
+#Timezome and Start and End Dates
 
 LATITUDE = 24.8607
 LONGITUDE = 67.0011
@@ -12,12 +16,14 @@ TIMEZONE = "Asia/Karachi"
 START_DATE = "2022-08-01"
 END_DATE = "2026-06-30"
 
+#URLs to fetch data from
 AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 WEATHER_URL = "https://archive-api.open-meteo.com/v1/archive"
 
+#raw data folder path to save fetched data to
 RAW_DATA_FOLDER = Path("data/raw")
 
-
+#specifying parameters for api
 air_quality_params = {
     "latitude": LATITUDE,
     "longitude": LONGITUDE,
@@ -46,14 +52,17 @@ weather_params = {
 
 print("Fetching historical air-quality data...")
 
+#fetching data with initialized parameters
 air_quality_response = requests.get(
     AIR_QUALITY_URL,
     params=air_quality_params,
     timeout=120,
 )
 
+#to see if any error occured
 air_quality_response.raise_for_status()
 
+#converting to dictionary and generating pandas data frame and formatting date and time column
 air_quality_data = air_quality_response.json()
 air_quality_df = pd.DataFrame(air_quality_data["hourly"])
 air_quality_df["time"] = pd.to_datetime(air_quality_df["time"])
@@ -73,7 +82,7 @@ weather_data = weather_response.json()
 weather_df = pd.DataFrame(weather_data["hourly"])
 weather_df["time"] = pd.to_datetime(weather_df["time"])
 
-
+#routine checks
 print("\nAir-quality data:")
 print("Shape:", air_quality_df.shape)
 print(air_quality_df.head())
@@ -82,7 +91,7 @@ print("\nWeather data:")
 print("Shape:", weather_df.shape)
 print(weather_df.head())
 
-
+#saving weather and air quality data separately to csvs
 air_quality_df.to_csv(
     RAW_DATA_FOLDER / "karachi_air_quality_raw.csv",
     index=False,

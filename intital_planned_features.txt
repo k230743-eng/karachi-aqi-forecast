@@ -1,0 +1,60 @@
+Time features:
+hour - helps the model to learn hourly trends (like high traffic hours or peak industrial activity)
+day_of_week - helps the model to learn weekly patterns and differentiate between weekends and weekdays
+month - kind of like a seasonal indicator
+is_weekend - to give model weekend indicator instead of having it learn meaning of day 5 and 6 on its own
+
+Lag features:
+aqi_lag_1h - aqi 1h before (most likely will remain pretty same)
+aqi_lag_3h - aqi 3 hrs before (shows short term condition)
+aqi_lag_6h - aqi 6 hrs before (useful for detecting changes over large portions of the day)
+aqi_lag_12h - aqi 12 hrs before (may help to capture difference in daytime and nighttime conditions)
+aqi_lag_24h - aqi 24 hrs before (helpful for detecting daily repeat cycles)
+pm2_5_lag_1h - pm is particulate matter concentration. It will help us predict aqi without completely relying on daily cycles
+pm2_5_lag_24h - for example aqi may be low currently but if pm is high aqi is likely to increase
+pm10_lag_1h
+pm10_lag_24h
+
+Rolling features: Rolling features will summarise several recent values for the stated interval
+This helps us see short term aqi and pm levels instead of seeing them at a specific time only
+aqi_mean_3h
+aqi_mean_6h
+aqi_mean_12h
+aqi_mean_24h
+pm2_5_mean_24h
+pm10_mean_24h
+
+Change features: Helps to detect if aqi is increasing or decreasing
+aqi_change_1h
+aqi_change_3h
+
+Targets: This isn't the complete list of targets but for now its okay as it will allow us to see how our 
+predictions vary with forecasting distance
+aqi_target_1h
+aqi_target_6h
+aqi_target_24h
+aqi_target_48h
+aqi_target_72h
+
+We will also retain all the existing columns
+
+Decisions to be made later:
+We may train separate models for each forecasting period (separate horizon models)
+We may use recursive prediction i.e. predict for next 1 hr then use it to predict the next hr and so on
+We may use a multi-output model that predicts all future 72 aqi values simultaneously
+Hour 23 and 0 look for apart but they are actually pretty close so we may need to use hour_sin, hour_cos, month_sin, month_cos
+
+EDA needs to be performed to see which features to keep and which to remove
+
+Features we may add later:
+aqi_lag_48h
+aqi_lag_72h
+aqi_lag_168h
+rolling standard deviation
+PM2.5 and PM10 change rates
+rain indicator
+wind x-component
+wind y-component
+cyclical time features
+season
+interaction between humidity and PM2.5
