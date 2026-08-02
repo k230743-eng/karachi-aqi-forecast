@@ -31,8 +31,6 @@ models/*
 !models/.gitkeep
 
 # Generated outputs
-outputs/graphs/*
-outputs/metrics/*
 !outputs/graphs/.gitkeep
 !outputs/metrics/.gitkeep
 

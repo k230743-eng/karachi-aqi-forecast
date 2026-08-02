@@ -1,0 +1,154 @@
+Main Findings from descriptive analysis:
+1. The final dataset contains 34,123 complete hourly observations and 45 columns.
+2. The data covers almost four years, from August 2022 to June 2026.
+3. There are no missing values, duplicate timestamps, or hourly gaps.
+4. The average AQI is approximately 93, while the median is 83.
+5. The AQI distribution is likely positively skewed due to occasional severe pollution episodes.
+6. PM2.5 has the strongest positive correlation with AQI at approximately 0.725.
+7. SO₂, CO, NO₂, and PM10 also show meaningful positive correlations.
+8. Wind speed and wind gusts are negatively associated with AQI, possibly because stronger winds disperse pollutants.
+9. Temperature, humidity, and dew point also show negative relationships with AQI.
+10. Precipitation has almost no overall linear correlation with AQI.
+11. The highest recorded AQI was 297 on 9 October 2022.
+12. The lowest AQI observation and its extremely low particulate values should be inspected for possible anomaly behaviour.
+13. Correlation represents association, not causation.
+14. Low-correlation features should not be removed until model performance and nonlinear relationships are examined.
+
+AQI over time graph:
+15. The AQI time series shows strong temporal variability.
+16. AQI generally stays around moderate levels but experiences repeated short-term spikes.
+17. Extreme AQI events are clearly visible, especially in late 2022 and early 2023.
+18. The graph suggests that AQI behaviour is not random and likely contains seasonal and temporal structure.
+19. The visual pattern supports the use of lag features, rolling features, and time-based features in the forecasting model.
+20. The graph also supports the statistical finding that the AQI distribution is right-skewed due to occasional severe pollution events.
+
+AQI Distribution:
+21. AQI is right-skewed.
+22. Most observations lie around 60–110.
+23. The highest frequency appears around 70–90.
+24. Mean AQI is greater than the median because of high-value pollution events.
+25. The distribution is not symmetric or normally distributed.
+26. Rare high-AQI observations create a long right tail extending toward 300.
+27. Extreme events may be harder for the model to predict because they are less common.
+28. High-AQI cases should be evaluated separately during model testing.
+29. Extreme observations should not be removed without evidence that they are erroneous.
+
+Average AQI by hour of day:
+30. The graph reveals a clear daily AQI cycle.
+31. AQI remains fairly stable from early morning to around midday.
+32. AQI begins to rise in the afternoon.
+33. The highest average AQI occurs in the evening, around 19:00.
+34. AQI decreases again after the evening peak.
+35. The difference between the lowest and highest average hourly AQI is roughly 9 units.
+36. This pattern supports the inclusion of hour as a predictive feature.
+37. Later, cyclical encoding of the hour feature may improve model performance.
+
+Average AQI by day of week:
+38. AQI varies only slightly across the days of the week.
+39. Weekly variation is much weaker than hourly variation.
+40. Friday appears to have the lowest average AQI.
+41. Sunday and Monday appear among the highest.
+42. There is no clear evidence that weekends have lower AQI.
+43. day_of_week and is_weekend should remain candidate features until their model contribution is tested.
+
+Average AQI by month:
+44. AQI shows a strong seasonal pattern.
+45. January has the highest average AQI.
+46. November and December are also highly polluted.
+47. May has the lowest average AQI.
+48. Cooler months generally show worse air quality.
+49. The seasonal difference is around 43 AQI units.
+50. Monthly variation is much stronger than weekday variation.
+51. The result strongly supports keeping month as a forecasting feature.
+52. Cyclical encoding of month may improve model performance.
+53. A year-by-month comparison should be added later to test whether the seasonal pattern is consistent across years.
+54. Generally monsoon or summer vacation months show low aqi.
+
+Correlation Heatmap:
+55. PM2.5 has the strongest positive relationship with AQI.
+56. Major pollutants tend to increase together during pollution episodes.
+57. Carbon monoxide and nitrogen dioxide are strongly correlated.
+58. PM10 and dust show a strong positive relationship.
+59. Temperature, humidity, and dew point contain overlapping meteorological information.
+60. Wind speed and wind gusts are very strongly correlated.
+61. Surface pressure is positively related to AQI and negatively related to several weather variables.
+62. Ozone shows a different relationship pattern from primary pollutants.
+63. Precipitation has weak overall linear relationships.
+64. The dataset contains multicollinearity, which should be considered when interpreting Ridge Regression coefficients.
+65. Correlated features should not be removed solely from the heatmap; their effect on validation performance should be tested.
+
+PM2.5 against AQI:
+66. PM2.5 has a clear positive relationship with AQI.
+67. The relationship is strong but nonlinear.
+68. PM2.5 is likely one of the most important forecasting features.
+69. Similar PM2.5 values can still produce very different AQI values.
+70. Other pollutants and weather features are therefore necessary.
+71. A visible concentration occurs around AQI 150.
+72. Extreme PM2.5 observations are rare and should be inspected rather than automatically removed.
+73. Random Forest may model this relationship better than Ridge Regression.
+
+Modelling Implications:
+Keep PM2.5 as a core model feature.
+Use nonlinear models such as Random Forest.
+Still compare against Ridge Regression as a baseline.
+Do not rely on PM2.5 alone.
+Evaluate model performance during extreme pollution periods.
+Consider whether outliers disproportionately affect RMSE.
+
+PM10 against AQI:
+74. PM10 has a moderate positive relationship with AQI.
+75. Its relationship is weaker than that of PM2.5.
+76. There is substantial spread at similar PM10 values.
+77. PM10 alone cannot explain AQI.
+78. The relationship is nonlinear.
+79. Extreme PM10 observations exist above 400–600.
+80. These extreme values should be inspected, not automatically deleted.
+81. The AQI 150 concentration appears again.
+82. PM10 should remain in the model as a secondary particulate feature.
+
+Modelling Implications:
+Keep PM10 as a feature.
+Do not treat it as the primary pollutant predictor.
+PM2.5 is likely more informative.
+Random Forest may handle the nonlinear and scattered pattern better.
+Outliers should be examined separately.
+PM10 may still add useful information when combined with dust, weather, and PM2.5.
+
+Wind speed against AQI:
+83. Wind speed has a negative relationship with AQI.
+84. Severe AQI values mainly occur under low or moderate wind speeds.
+85. At high wind speeds, AQI is generally lower and less variable.
+86. The relationship appears nonlinear.
+87. Wind likely assists pollutant dispersion.
+88. Wind speed alone does not explain AQI because there is substantial spread at similar speeds.
+89. Wind direction should later be encoded using sine and cosine.
+90. The horizontal cluster of very low AQI observations should be inspected as a possible unusual period.
+
+Relative humidity against aqi:
+91. Relative humidity has a weak negative correlation with AQI.
+92. Higher humidity is generally associated with slightly lower AQI.
+93. The relationship is highly scattered.
+94. Humidity alone cannot explain air-quality variation.
+95. High AQI events still occur at high humidity levels.
+96. The relationship may be nonlinear and season-dependent.
+97. Vertical bands are caused by humidity being recorded as integer percentages.
+98. Humidity should remain a candidate feature, but it is probably less important than PM2.5, AQI lags, and seasonal features.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
