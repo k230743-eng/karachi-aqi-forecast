@@ -2,20 +2,23 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.metrics import (
-    mean_absolute_error,
-    mean_squared_error,
-    r2_score,
-)
+import joblib
+from sklearn.metrics import (mean_absolute_error,mean_squared_error,r2_score,)
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
 
 # File paths
 DATA_FILE = Path("data/processed/karachi_aqi_features.csv")
 
 METRICS_FOLDER = Path("outputs/metrics")
 GRAPHS_FOLDER = Path("outputs/graphs")
+MODELS_FOLDER = Path("models")
 
 METRICS_FOLDER.mkdir(parents=True, exist_ok=True)
 GRAPHS_FOLDER.mkdir(parents=True, exist_ok=True)
+MODELS_FOLDER.mkdir(parents=True, exist_ok=True)
 
 
 # Load and sort data
@@ -194,3 +197,184 @@ plt.close()
 
 print("\nBaseline RMSE graph saved to:")
 print(RMSE_GRAPH_FILE)
+
+#Feature columns
+feature_columns = [
+    "pm10",
+    "pm2_5",
+    "carbon_monoxide",
+    "nitrogen_dioxide",
+    "sulphur_dioxide",
+    "ozone",
+    "dust",
+    "aerosol_optical_depth",
+    "us_aqi",
+    "temperature_2m",
+    "relative_humidity_2m",
+    "dew_point_2m",
+    "surface_pressure",
+    "precipitation",
+    "cloud_cover",
+    "wind_speed_10m",
+    "wind_direction_10m",
+    "wind_gusts_10m",
+    "hour",
+    "day_of_week",
+    "month",
+    "is_weekend",
+    "aqi_lag_1h",
+    "aqi_lag_3h",
+    "aqi_lag_6h",
+    "aqi_lag_12h",
+    "aqi_lag_24h",
+    "pm2_5_lag_1h",
+    "pm2_5_lag_24h",
+    "pm10_lag_1h",
+    "pm10_lag_24h",
+    "aqi_mean_3h",
+    "aqi_mean_6h",
+    "aqi_mean_12h",
+    "aqi_mean_24h",
+    "pm2_5_mean_24h",
+    "pm10_mean_24h",
+    "aqi_change_1h",
+    "aqi_change_3h",
+]
+
+#Ridge Regression Models
+ridge_results = []
+
+X_train = train_df[feature_columns]
+X_test = test_df[feature_columns]
+
+for horizon_name, target_column in target_columns.items():
+
+    y_train = train_df[target_column]
+    y_test = test_df[target_column]
+
+    ridge_model = Pipeline(
+        steps=[
+            ("scaler", StandardScaler()),
+            ("ridge", Ridge(alpha=1.0)),
+        ]
+    )
+
+    ridge_model.fit(X_train, y_train)
+
+    predictions = ridge_model.predict(X_test)
+
+    mae, rmse, r2 = calculate_metrics(y_test, predictions,)
+
+    ridge_results.append(
+        {
+            "model": "Ridge Regression",
+            "forecast_horizon": horizon_name,
+            "mae": mae,
+            "rmse": rmse,
+            "r2": r2,
+        }
+    )
+
+    print(f"\nRidge Regression — {horizon_name}")
+    print(f"MAE:  {mae:.3f}")
+    print(f"RMSE: {rmse:.3f}")
+    print(f"R²:   {r2:.3f}")
+
+    joblib.dump(ridge_model,MODELS_FOLDER / f"ridge_{horizon_name}.joblib",)
+
+
+# Random Forest models
+random_forest_results = []
+
+for horizon_name, target_column in target_columns.items():
+
+    y_train = train_df[target_column]
+    y_test = test_df[target_column]
+
+    random_forest_model = RandomForestRegressor(
+        n_estimators=200,
+        max_depth=20,
+        min_samples_split=5,
+        min_samples_leaf=2,
+        random_state=42,
+        n_jobs=-1,
+    )
+
+    random_forest_model.fit(X_train,y_train,)
+
+    predictions = random_forest_model.predict(X_test)
+
+    mae, rmse, r2 = calculate_metrics(y_test, predictions,)
+
+    random_forest_results.append(
+        {
+            "model": "Random Forest",
+            "forecast_horizon": horizon_name,
+            "mae": mae,
+            "rmse": rmse,
+            "r2": r2,
+        }
+    )
+
+    print(f"\nRandom Forest — {horizon_name}")
+    print(f"MAE:  {mae:.3f}")
+    print(f"RMSE: {rmse:.3f}")
+    print(f"R²:   {r2:.3f}")
+
+    joblib.dump(random_forest_model,MODELS_FOLDER / f"random_forest_{horizon_name}.joblib",)
+
+joblib.dump(feature_columns,MODELS_FOLDER / "feature_columns.joblib",)
+
+ridge_results_df = pd.DataFrame(ridge_results)
+
+random_forest_results_df = pd.DataFrame(random_forest_results)
+
+all_results_df = pd.concat(
+    [
+        baseline_results_df,
+        ridge_results_df,
+        random_forest_results_df,
+    ],
+    ignore_index=True,
+)
+
+ALL_METRICS_FILE = (METRICS_FOLDER / "model_comparison_metrics.csv")
+
+all_results_df.to_csv(ALL_METRICS_FILE,index=False,)
+
+print("\nAll model comparison metrics:")
+print(all_results_df)
+
+print("\nComparison metrics saved to:")
+print(ALL_METRICS_FILE)
+
+#Loading Random Forest 1 hour and 72 hour model to see which features are most important
+rf_1h_model = joblib.load(MODELS_FOLDER / "random_forest_1_hour.joblib")
+feature_columns = joblib.load(MODELS_FOLDER / "feature_columns.joblib")
+
+feature_importance_df = pd.DataFrame(
+    {
+        "feature": feature_columns,
+        "importance": rf_1h_model.feature_importances_,
+    }
+).sort_values(
+    "importance",
+    ascending=False,
+)
+
+print("\nTop Random Forest features for 1 hour:")
+print(feature_importance_df.head(10))
+
+rf_72h_model = joblib.load(MODELS_FOLDER / "random_forest_72_hours.joblib")
+feature_importance_df = pd.DataFrame(
+    {
+        "feature": feature_columns,
+        "importance": rf_72h_model.feature_importances_,
+    }
+).sort_values(
+    "importance",
+    ascending=False,
+)
+
+print("\nTop Random Forest features for 72 hour:")
+print(feature_importance_df.head(10))

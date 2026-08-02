@@ -1,0 +1,56 @@
+Persistence Baseline Summary
+
+Horizon	    MAE	        RMSE	R²	    Interpretation
+1 hour	    1.40	    3.40	0.978	Excellent
+6 hours	    6.19	    10.85	0.781	Strong
+24 hours	12.92	    18.22	0.382	Moderate
+48 hours	16.92	    22.89	0.025	Very weak
+72 hours	18.82	    25.20	-0.181	Worse than mean baseline
+
+1. Persistence is extremely effective for one-hour AQI forecasting.
+2. Performance declines consistently as the horizon increases.
+3. Current AQI remains useful at six hours but loses much of its value by 24 hours.
+4. Persistence has almost no explanatory power at 48 hours.
+5. At 72 hours, persistence performs worse than predicting the average AQI.
+6. Longer-horizon models must use weather, pollutants, temporal patterns, lags, and rolling features.
+7. Any trained model should be compared against these baseline scores.
+8. The 72-hour model should aim to achieve:
+MAE below 18.82
+RMSE below 25.20
+R² above -0.181
+Ideally, it should also produce a positive and meaningfully higher R².
+
+Horizon	    RidgeMAE	Ridge RMSE	Ridge R²	Assessment
+1 hour	    1.35	    2.55	    0.988	    Excellent
+6 hours	    4.79	    7.04	    0.908	    Excellent
+24 hours	10.52	    14.45	    0.611	    Good
+48 hours	14.28	    19.04	    0.325	    Moderate
+72 hours	15.25	    19.80	    0.270	    Meaningful improvement
+
+Ridge Regression outperformed both the persistence and training-mean baselines across every forecast horizon.
+Its strongest performance occurred at the one-hour horizon, where it achieved an MAE of 1.35, RMSE of 2.55, and R² of 0.988.
+
+At the 72-hour horizon, Ridge Regression achieved an MAE of 15.25, RMSE of 19.80, and R² of 0.270.
+This represented a substantial improvement over persistence, which produced a negative R² at the same horizon.
+
+Although prediction accuracy decreased as the forecast horizon increased, the positive R² at 48 and 72 hours showed
+that the engineered features contained useful longer-term forecasting information.
+
+Model                   Horizon     MAE     RMSE        R2       
+Random Forest           1_hour   0.448016   1.704472  0.994598
+Random Forest          6_hours   2.909120   5.030179  0.952931
+Random Forest         24_hours  10.522295  14.481498  0.609539
+Random Forest         48_hours  15.230543  20.161188  0.243327
+Random Forest         72_hours  16.612373  21.434160  0.145271
+
+Random Forest produced the best one-hour and six-hour predictions.
+Ridge and Random Forest were nearly tied at 24 hours.
+Ridge performed better at 48 and 72 hours.
+Random Forest captures nonlinear short-term relationships effectively.
+Ridge appears to generalise more reliably at longer horizons.
+Both machine-learning models beat the persistence and mean baselines.
+Forecast horizon should be considered when selecting the production model.
+The current best 72-hour model is Ridge Regression.
+The current best short-term model is Random Forest.
+Model performance declines with forecast horizon for both algorithms.
+
