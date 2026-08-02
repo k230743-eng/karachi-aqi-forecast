@@ -1,0 +1,2 @@
+model,forecast_horizon,mae,rmse,r2
+TensorFlow Dense Neural Network,72_hours,16.366244198865505,21.54075378576637,0.13674839605660094
