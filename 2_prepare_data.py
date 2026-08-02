@@ -10,7 +10,7 @@ PROCESSED_DATA_FOLDER = Path("data/processed")
 AIR_QUALITY_FILE = RAW_DATA_FOLDER / "karachi_air_quality_raw.csv"
 WEATHER_FILE = RAW_DATA_FOLDER / "karachi_weather_raw.csv"
 
-OUTPUT_FILE = PROCESSED_DATA_FOLDER / "karachi_merged_clean.csv"
+#OUTPUT_FILE = PROCESSED_DATA_FOLDER / "karachi_merged_clean.csv"
 
 #reading raw data csvs collected by collect_data.py
 air_quality_df = pd.read_csv(AIR_QUALITY_FILE)
@@ -18,11 +18,12 @@ weather_df = pd.read_csv(WEATHER_FILE)
 
 #merging the csvs on time
 merged_df = pd.merge(air_quality_df,weather_df,on="time", how="inner")
+merged_df["time"] = pd.to_datetime(merged_df["time"])
 
 #routine check
 print("\nMerged df:")
 print(merged_df.shape)
-print(merged_df.head)
+print(merged_df.head())
 
 #essential columns that must be present for each row
 essential_air_quality_columns = [
@@ -53,9 +54,19 @@ print(merged_df.isnull().sum())
 print("\nDuplicate timestamps:")
 print(merged_df["time"].duplicated().sum())
 
+#checking if any row contains a difference of more than 1 hr to make sure below implementation of shifting is correct
+time_differences = merged_df["time"].diff()
+
+missing_hour_gaps = time_differences[
+    time_differences > pd.Timedelta(hours=1)
+]
+
+print("\nGaps larger than one hour:")
+print(missing_hour_gaps)
+
 #routine check
 print("Merged df first 5 rows:")
-print(merged_df.head)
+print(merged_df.head())
 
 #merged_df.to_csv(OUTPUT_FILE,index=False,)
 #print("\nClean merged dataset saved to:")
@@ -102,4 +113,24 @@ merged_df["aqi_target_24h"] = merged_df["us_aqi"].shift(-24)
 merged_df["aqi_target_48h"] = merged_df["us_aqi"].shift(-48)
 merged_df["aqi_target_72h"] = merged_df["us_aqi"].shift(-72)
 
+#dropping rows with missing values created due to lag features created
+merged_df = merged_df.dropna().reset_index(drop=True)
+
+#specifying path for new csv
+OUTPUT_FILE = (PROCESSED_DATA_FOLDER/ "karachi_aqi_features.csv")
+
+merged_df.to_csv(OUTPUT_FILE,index=False,)
+
+print("\nFinal feature dataset shape:")
+print(merged_df.shape)
+
+print("\nFinal date range:")
+print("Start:", merged_df["time"].min())
+print("End:  ", merged_df["time"].max())
+
+print("\nRemaining missing values:")
+print(merged_df.isnull().sum().sum())
+
+print("\nProcessed dataset saved to:")
+print(OUTPUT_FILE)
 
