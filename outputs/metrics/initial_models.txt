@@ -1,0 +1,11 @@
+Best performance is shown by random forest for 1hr and 6hrs
+For rest ridge regression works better.
+
+However r2 score is too low and we need to improve it. Here are the improvements I will tackle:
+1. Encode cyclical variables correctly
+2. Add longer historical features and longer rolling summaries
+3. Add more trend features
+4. Select features more carefully
+5. Hyperparameter tuning
+6. Add features for Forecast-time weather
+7. Maybe use time series validation
