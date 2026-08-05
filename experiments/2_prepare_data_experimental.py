@@ -1,6 +1,7 @@
 #importing libraries
 from pathlib import Path
 import pandas as pd
+import numpy as np
 
 #paths to raw data and processed data folders
 RAW_DATA_FOLDER = Path("data/raw")
@@ -78,6 +79,19 @@ merged_df["day_of_week"] = merged_df["time"].dt.dayofweek
 merged_df["month"] = merged_df["time"].dt.month
 merged_df["is_weekend"] = (merged_df["day_of_week"] >= 5).astype(int)
 
+#Cyclical Time Features
+#merged_df["hour_sin"] = np.sin(2*np.pi*merged_df["hour"] / 24)
+#merged_df["hour_cos"] = np.cos(2 * np.pi * merged_df["hour"] / 24)
+#merged_df["day_of_week_sin"] = np.sin(2 * np.pi * merged_df["day_of_week"] / 7)
+#merged_df["day_of_week_cos"] = np.cos(2 * np.pi * merged_df["day_of_week"] / 7)
+#merged_df["month_sin"] = np.sin(2 * np.pi * (merged_df["month"] - 1) / 12)
+#merged_df["month_cos"] = np.cos(2 * np.pi * (merged_df["month"] - 1) / 12)
+
+#Encoding Wind direction in a more meaningful way
+#wind_radians = np.radians(merged_df["wind_direction_10m"])
+#merged_df["wind_direction_sin"] = np.sin(wind_radians)
+#merged_df["wind_direction_cos"] = np.cos(wind_radians)
+
 #Lag Features
 merged_df["aqi_lag_1h"] = merged_df["us_aqi"].shift(1)
 merged_df["aqi_lag_3h"] = merged_df["us_aqi"].shift(3)
@@ -139,6 +153,41 @@ merged_df["aqi_change_72h"] = (merged_df["us_aqi"] - merged_df["aqi_lag_72h"])
 #AQI volatility features
 merged_df["aqi_std_24h"] = (merged_df["us_aqi"].rolling(window=24).std())
 merged_df["aqi_std_72h"] = (merged_df["us_aqi"].rolling(window=72).std())
+
+# Weather conditions at the 72-hour target time
+merged_df["future_temperature_72h"] = (merged_df["temperature_2m"].shift(-72))
+merged_df["future_humidity_72h"] = (merged_df["relative_humidity_2m"].shift(-72))
+merged_df["future_dew_point_72h"] = (merged_df["dew_point_2m"].shift(-72))
+merged_df["future_pressure_72h"] = (merged_df["surface_pressure"].shift(-72))
+merged_df["future_precipitation_72h"] = (merged_df["precipitation"].shift(-72))
+merged_df["future_cloud_cover_72h"] = (merged_df["cloud_cover"].shift(-72))
+merged_df["future_wind_speed_72h"] = (merged_df["wind_speed_10m"].shift(-72))
+merged_df["future_wind_gusts_72h"] = (merged_df["wind_gusts_10m"].shift(-72))
+future_wind_direction = (merged_df["wind_direction_10m"].shift(-72))
+future_wind_radians = np.radians(future_wind_direction)
+merged_df["future_wind_direction_sin_72h"] = (np.sin(future_wind_radians))
+merged_df["future_wind_direction_cos_72h"] = (np.cos(future_wind_radians))
+
+# Time information for the 72-hour target
+target_time_72h = (merged_df["time"]+ pd.Timedelta(hours=72))
+target_hour_72h = target_time_72h.dt.hour
+target_day_72h = target_time_72h.dt.dayofweek
+target_month_72h = target_time_72h.dt.month
+
+merged_df["target_hour_sin_72h"] = np.sin(2 * np.pi * target_hour_72h / 24)
+merged_df["target_hour_cos_72h"] = np.cos(2 * np.pi * target_hour_72h / 24)
+merged_df["target_day_sin_72h"] = np.sin(2 * np.pi * target_day_72h / 7)
+merged_df["target_day_cos_72h"] = np.cos(2 * np.pi * target_day_72h / 7)
+merged_df["target_month_sin_72h"] = np.sin(2 * np.pi * (target_month_72h - 1) / 12)
+merged_df["target_month_cos_72h"] = np.cos(2 * np.pi * (target_month_72h - 1) / 12)
+merged_df["target_is_weekend_72h"] = (target_day_72h >= 5).astype(int)
+
+#Forecast targets
+merged_df["aqi_target_1h"] = merged_df["us_aqi"].shift(-1)
+merged_df["aqi_target_6h"] = merged_df["us_aqi"].shift(-6)
+merged_df["aqi_target_24h"] = merged_df["us_aqi"].shift(-24)
+merged_df["aqi_target_48h"] = merged_df["us_aqi"].shift(-48)
+merged_df["aqi_target_72h"] = merged_df["us_aqi"].shift(-72)
 
 #dropping rows with missing values created due to lag features created
 merged_df = merged_df.dropna().reset_index(drop=True)
