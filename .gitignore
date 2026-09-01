@@ -44,3 +44,7 @@ models/*
 # Operating system files
 .DS_Store
 Thumbs.db
+
+#Hopsworks files
+.hopsworks_certs/
+.hopsworks_tmp/
