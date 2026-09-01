@@ -1,0 +1,14 @@
+hopsworks==5.0.6
+protobuf==4.25.9
+
+pandas==2.3.3
+numpy
+
+requests
+urllib3
+
+joblib
+xgboost
+scikit-learn
+
+pyarrow
