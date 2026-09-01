@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import timedelta
+import os
 
 import hopsworks
 import pandas as pd
@@ -33,19 +34,27 @@ WEATHER_URL = (
 FEATURE_GROUP_NAME = "karachi_aqi_features"
 FEATURE_GROUP_VERSION = 2
 
-CERT_FOLDER = Path(
-    r"D:\karachi-aqi-forecast\.hopsworks_certs"
+RUNNING_IN_GITHUB = (
+    os.getenv("GITHUB_ACTIONS") == "true"
 )
 
-CERT_FOLDER.mkdir(
-    parents=True,
-    exist_ok=True
-)
 
-Path(r"D:\tmp").mkdir(
-    parents=True,
-    exist_ok=True
-)
+#local winwos hopsworks setup
+if not RUNNING_IN_GITHUB:
+
+    CERT_FOLDER = Path(
+        r"D:\karachi-aqi-forecast\.hopsworks_certs"
+    )
+
+    CERT_FOLDER.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    Path(r"D:\tmp").mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
 
 # ---------------------------------------------------------
@@ -976,9 +985,37 @@ print(
 )
 
 
-project = hopsworks.login(
-    cert_folder=str(CERT_FOLDER)
-)
+if RUNNING_IN_GITHUB:
+
+    print(
+        "Running inside GitHub Actions."
+    )
+
+    project = hopsworks.login(
+
+        host=os.environ[
+            "HOPSWORKS_HOST"
+        ],
+
+        project=os.environ[
+            "HOPSWORKS_PROJECT"
+        ],
+
+        api_key_value=os.environ[
+            "HOPSWORKS_API_KEY"
+        ],
+    )
+
+
+else:
+
+    print(
+        "Running locally."
+    )
+
+    project = hopsworks.login(
+        cert_folder=str(CERT_FOLDER)
+    )
 
 
 fs = project.get_feature_store()
