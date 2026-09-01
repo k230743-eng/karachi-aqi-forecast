@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 import shutil
 import zipfile
+import os
 
 import hopsworks
 import joblib
@@ -51,23 +52,33 @@ MODEL_VERSION = 1
 
 
 # ---------------------------------------------------------
-# Hopsworks local setup
+# Detect environment
 # ---------------------------------------------------------
 
-CERT_FOLDER = Path(
-    r"D:\karachi-aqi-forecast\.hopsworks_certs"
-)
-
-CERT_FOLDER.mkdir(
-    parents=True,
-    exist_ok=True
+RUNNING_IN_GITHUB = (
+    os.getenv("GITHUB_ACTIONS") == "true"
 )
 
 
-Path(r"D:\tmp").mkdir(
-    parents=True,
-    exist_ok=True
-)
+# ---------------------------------------------------------
+# Local Windows Hopsworks setup
+# ---------------------------------------------------------
+
+if not RUNNING_IN_GITHUB:
+
+    CERT_FOLDER = Path(
+        r"D:\karachi-aqi-forecast\.hopsworks_certs"
+    )
+
+    CERT_FOLDER.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    Path(r"D:\tmp").mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
 
 # ---------------------------------------------------------
@@ -245,9 +256,37 @@ EXPECTED_MODEL_FEATURE_COLUMNS = (
 print("\nConnecting to Hopsworks...")
 
 
-project = hopsworks.login(
-    cert_folder=str(CERT_FOLDER)
-)
+if RUNNING_IN_GITHUB:
+
+    print(
+        "Running inside GitHub Actions."
+    )
+
+    project = hopsworks.login(
+
+        host=os.environ[
+            "HOPSWORKS_HOST"
+        ],
+
+        project=os.environ[
+            "HOPSWORKS_PROJECT"
+        ],
+
+        api_key_value=os.environ[
+            "HOPSWORKS_API_KEY"
+        ],
+    )
+
+
+else:
+
+    print(
+        "Running locally."
+    )
+
+    project = hopsworks.login(
+        cert_folder=str(CERT_FOLDER)
+    )
 
 
 fs = project.get_feature_store()
