@@ -4,6 +4,7 @@
 # Virtual environment
 .venv/
 venv/
+.dashboard-venv/
 
 # Python cache files
 __pycache__/
@@ -21,6 +22,7 @@ htmlcov/
 # Local data files
 data/raw/*
 data/processed/*
+data/live_cache/
 
 # Keep the folders themselves
 !data/raw/.gitkeep
@@ -29,6 +31,7 @@ data/processed/*
 # Trained models
 models/*
 !models/.gitkeep
+models/live_model_cache/
 
 # Generated outputs
 !outputs/graphs/.gitkeep

@@ -1,9 +1,0 @@
-pandas
-numpy
-requests
-python-dotenv
-matplotlib
-scikit-learn
-pytest
-seaborn
-tensorflow
