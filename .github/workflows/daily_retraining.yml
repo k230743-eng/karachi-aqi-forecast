@@ -1,0 +1,59 @@
+name: Daily AQI Retraining
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "30 20 * * *"
+
+jobs:
+  retrain-aqi-model:
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 120
+
+    env:
+      HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
+      HOPSWORKS_HOST: ${{ secrets.HOPSWORKS_HOST }}
+      HOPSWORKS_PROJECT: ${{ secrets.HOPSWORKS_PROJECT }}
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: requirements-live.txt
+
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-live.txt
+          pip install matplotlib
+
+
+      - name: Verify dependencies
+        run: |
+          pip check
+
+
+      - name: Update training targets
+        run: |
+          python 16_update_targets.py
+
+
+      - name: Retrain 72 AQI models
+        run: |
+          python 11_train_final_models_from_hopsworks.py
+
+
+      - name: Register retrained models
+        run: |
+          python 12_register_models_hopsworks.py

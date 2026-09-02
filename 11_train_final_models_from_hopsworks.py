@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
 import joblib
+import os
 
 import hopsworks
 import numpy as np
@@ -17,22 +18,29 @@ from xgboost import XGBRegressor
 
 
 # ---------------------------------------------------------
-# Windows / Hopsworks setup
+# Environment / Hopsworks setup
 # ---------------------------------------------------------
 
-Path(r"D:\tmp").mkdir(
-    parents=True,
-    exist_ok=True
+RUNNING_IN_GITHUB = (
+    os.getenv("GITHUB_ACTIONS") == "true"
 )
 
-CERT_FOLDER = Path(
-    r"D:\karachi-aqi-forecast\.hopsworks_certs"
-)
 
-CERT_FOLDER.mkdir(
-    parents=True,
-    exist_ok=True
-)
+if not RUNNING_IN_GITHUB:
+
+    Path(r"D:\tmp").mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    CERT_FOLDER = Path(
+        r"D:\karachi-aqi-forecast\.hopsworks_certs"
+    )
+
+    CERT_FOLDER.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
 
 # ---------------------------------------------------------
@@ -87,76 +95,153 @@ FEATURE_COLUMNS_FILE = (
 
 print("\nConnecting to Hopsworks...")
 
-project = hopsworks.login(
-    cert_folder=str(CERT_FOLDER)
-)
+
+if RUNNING_IN_GITHUB:
+
+    print("Running inside GitHub Actions.")
+
+    project = hopsworks.login(
+        host=os.environ[
+            "HOPSWORKS_HOST"
+        ],
+        project=os.environ[
+            "HOPSWORKS_PROJECT"
+        ],
+        api_key_value=os.environ[
+            "HOPSWORKS_API_KEY"
+        ],
+    )
+
+else:
+
+    print("Running locally.")
+
+    project = hopsworks.login(
+        cert_folder=str(CERT_FOLDER)
+    )
+
 
 fs = project.get_feature_store()
 
 print("\nConnected to Feature Store.")
 
 
-# ---------------------------------------------------------
-# Load Feature View
-# ---------------------------------------------------------
+# =========================================================
+# Read latest features and targets directly
+# =========================================================
 
-feature_view = fs.get_feature_view(
-    name="karachi_aqi_training_view",
+print(
+    "\nReading latest features "
+    "from Hopsworks..."
+)
+
+
+feature_group = fs.get_feature_group(
+    name="karachi_aqi_features",
+    version=2,
+)
+
+
+target_group = fs.get_feature_group(
+    name="karachi_aqi_targets",
     version=1,
 )
 
-print("\nFeature View loaded.")
+
+features_df = feature_group.read()
+
+targets_df = target_group.read()
 
 
-# ---------------------------------------------------------
-# Fetch materialized training dataset
-# ---------------------------------------------------------
+if features_df.empty:
 
-X, y = feature_view.get_training_data(
-    training_dataset_version=1
+    raise RuntimeError(
+        "Feature group is empty."
+    )
+
+
+if targets_df.empty:
+
+    raise RuntimeError(
+        "Target group is empty."
+    )
+
+
+print(
+    "\nFeatures retrieved:",
+    features_df.shape
 )
 
-print("\nTraining data retrieved from Hopsworks.")
-
-print("\nFeatures shape:")
-print(X.shape)
-
-print("\nLabels shape:")
-print(y.shape)
-
-
-# ---------------------------------------------------------
-# Fix timestamp
-# ---------------------------------------------------------
-
-X["time"] = pd.to_datetime(
-    X["time"]
+print(
+    "Targets retrieved:",
+    targets_df.shape
 )
 
-# Hopsworks returned the timestamps with a UTC timezone tag.
-# The original dataset used these clock times as Karachi-local
-# naive timestamps.
-#
-# Remove the timezone WITHOUT changing the clock value so that
-# the train/test boundary is identical to the original pipeline.
 
-if X["time"].dt.tz is not None:
-    X["time"] = (
-        X["time"]
+# =========================================================
+# Fix timestamps
+# =========================================================
+
+features_df["time"] = pd.to_datetime(
+    features_df["time"]
+)
+
+targets_df["time"] = pd.to_datetime(
+    targets_df["time"]
+)
+
+
+if features_df["time"].dt.tz is not None:
+
+    features_df["time"] = (
+        features_df["time"]
         .dt.tz_localize(None)
     )
 
 
-# ---------------------------------------------------------
-# Combine features and labels
-# ---------------------------------------------------------
+if targets_df["time"].dt.tz is not None:
 
-df = pd.concat(
-    [
-        X.reset_index(drop=True),
-        y.reset_index(drop=True),
-    ],
-    axis=1,
+    targets_df["time"] = (
+        targets_df["time"]
+        .dt.tz_localize(None)
+    )
+
+
+# =========================================================
+# Sort / deduplicate
+# =========================================================
+
+features_df = (
+    features_df
+    .sort_values("time")
+    .drop_duplicates(
+        subset=["time"],
+        keep="last"
+    )
+    .reset_index(drop=True)
+)
+
+
+targets_df = (
+    targets_df
+    .sort_values("time")
+    .drop_duplicates(
+        subset=["time"],
+        keep="last"
+    )
+    .reset_index(drop=True)
+)
+
+
+# =========================================================
+# Join features + targets
+# =========================================================
+
+df = pd.merge(
+    features_df,
+    targets_df,
+    on="time",
+    how="inner",
 )
 
 
@@ -167,10 +252,27 @@ df = (
 )
 
 
-print("\nCombined dataset shape:")
-print(df.shape)
+if df.empty:
 
-print("\nDataset range:")
+    raise RuntimeError(
+        "No matching feature/target "
+        "rows were found."
+    )
+
+
+print(
+    "\nCombined dataset shape:"
+)
+
+print(
+    df.shape
+)
+
+
+print(
+    "\nDataset range:"
+)
+
 print(
     df["time"].min(),
     "to",
@@ -334,13 +436,24 @@ with open(
 
 
 # ---------------------------------------------------------
-# Fixed chronological test boundary
+# Rolling chronological train/test split
 #
-# Same boundary as previous experiments
+# Keep the newest 20% for evaluation.
 # ---------------------------------------------------------
 
-TEST_START = pd.Timestamp(
-    "2025-09-17 20:00:00"
+TEST_START = df[
+    "time"
+].quantile(
+    0.80
+)
+
+
+print(
+    "\nAutomatic test boundary:"
+)
+
+print(
+    TEST_START
 )
 
 

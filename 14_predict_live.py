@@ -48,7 +48,6 @@ PREDICTION_FEATURE_GROUP_VERSION = 1
 # ---------------------------------------------------------
 
 MODEL_NAME = "karachi_aqi_xgboost_72h"
-MODEL_VERSION = 1
 
 
 # ---------------------------------------------------------
@@ -580,11 +579,31 @@ print(
 )
 
 
-registered_model = mr.get_model(
+available_models = mr.get_models(
+    name=MODEL_NAME
+)
 
-    name=MODEL_NAME,
 
-    version=MODEL_VERSION,
+if not available_models:
+
+    raise RuntimeError(
+        f"No registered models found "
+        f"for {MODEL_NAME}."
+    )
+
+
+registered_model = max(
+    available_models,
+    key=lambda model: model.version
+)
+
+
+print(
+    "\nUsing latest model version:"
+)
+
+print(
+    registered_model.version
 )
 
 
@@ -593,7 +612,6 @@ if registered_model is None:
     raise RuntimeError(
 
         f"Model {MODEL_NAME} "
-        f"version {MODEL_VERSION} "
         f"was not found."
     )
 
@@ -631,13 +649,17 @@ EXPECTED_LAST_MODEL = (
 
 
 models_ready = (
-
     EXPECTED_FIRST_MODEL.exists()
-
     and
-
     EXPECTED_LAST_MODEL.exists()
 )
+
+
+# GitHub Actions should always fetch the
+# newest registered model version.
+if RUNNING_IN_GITHUB:
+
+    models_ready = False
 
 
 # =========================================================

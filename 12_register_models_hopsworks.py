@@ -1,28 +1,36 @@
 from pathlib import Path
 import shutil
 import json
+import os
 
 import hopsworks
 import pandas as pd
 
 
 # ---------------------------------------------------------
-# Windows / Hopsworks setup
+# Environment / Hopsworks setup
 # ---------------------------------------------------------
 
-Path(r"D:\tmp").mkdir(
-    parents=True,
-    exist_ok=True
+RUNNING_IN_GITHUB = (
+    os.getenv("GITHUB_ACTIONS") == "true"
 )
 
-CERT_FOLDER = Path(
-    r"D:\karachi-aqi-forecast\.hopsworks_certs"
-)
 
-CERT_FOLDER.mkdir(
-    parents=True,
-    exist_ok=True
-)
+if not RUNNING_IN_GITHUB:
+
+    Path(r"D:\tmp").mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    CERT_FOLDER = Path(
+        r"D:\karachi-aqi-forecast\.hopsworks_certs"
+    )
+
+    CERT_FOLDER.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
 
 # ---------------------------------------------------------
@@ -189,17 +197,21 @@ metadata = {
     "training_source":
         "Hopsworks Feature Store",
 
-    "feature_view":
-        "karachi_aqi_training_view",
+    "feature_group":
+        "karachi_aqi_features",
 
-    "feature_view_version":
+    "feature_group_version":
+        2,
+
+    "target_group":
+        "karachi_aqi_targets",
+
+    "target_group_version":
         1,
 
-    "training_dataset_version":
-        1,
+    "split_strategy":
+        "Chronological 80/20",
 
-    "test_start":
-        "2025-09-17 20:00:00",
 }
 
 
@@ -312,9 +324,33 @@ print(
 )
 
 
-project = hopsworks.login(
-    cert_folder=str(CERT_FOLDER)
-)
+if RUNNING_IN_GITHUB:
+
+    print(
+        "Running inside GitHub Actions."
+    )
+
+    project = hopsworks.login(
+        host=os.environ[
+            "HOPSWORKS_HOST"
+        ],
+        project=os.environ[
+            "HOPSWORKS_PROJECT"
+        ],
+        api_key_value=os.environ[
+            "HOPSWORKS_API_KEY"
+        ],
+    )
+
+else:
+
+    print(
+        "Running locally."
+    )
+
+    project = hopsworks.login(
+        cert_folder=str(CERT_FOLDER)
+    )
 
 
 mr = project.get_model_registry()
@@ -323,20 +359,6 @@ mr = project.get_model_registry()
 print(
     "\nConnected to Model Registry."
 )
-
-
-# ---------------------------------------------------------
-# Optional Feature View provenance
-# ---------------------------------------------------------
-
-fs = project.get_feature_store()
-
-
-feature_view = fs.get_feature_view(
-    name="karachi_aqi_training_view",
-    version=1,
-)
-
 
 # ---------------------------------------------------------
 # Create registry model metadata
@@ -353,15 +375,12 @@ model = mr.python.create_model(
     ),
 
     metrics={
-
         "mae_1h": float(
             metrics_1h["mae"]
         ),
-
         "rmse_1h": float(
             metrics_1h["rmse"]
         ),
-
         "r2_1h": float(
             metrics_1h["r2"]
         ),
@@ -369,11 +388,9 @@ model = mr.python.create_model(
         "mae_24h": float(
             metrics_24h["mae"]
         ),
-
         "rmse_24h": float(
             metrics_24h["rmse"]
         ),
-
         "r2_24h": float(
             metrics_24h["r2"]
         ),
@@ -381,19 +398,13 @@ model = mr.python.create_model(
         "mae_72h": float(
             metrics_72h["mae"]
         ),
-
         "rmse_72h": float(
             metrics_72h["rmse"]
         ),
-
         "r2_72h": float(
             metrics_72h["r2"]
         ),
     },
-
-    feature_view=feature_view,
-
-    training_dataset_version=1,
 )
 
 
